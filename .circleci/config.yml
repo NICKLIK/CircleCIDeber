@@ -1,0 +1,62 @@
+version: 2.1
+
+jobs:
+  instalar_dependencias:
+    docker:
+      - image: cimg/node:20.11
+    steps:
+      - checkout
+      - run:
+          name: Instalar dependencias
+          command: npm install
+
+  ejecutar_pruebas_en_paralelo:
+    docker:
+      - image: cimg/node:20.11
+    parallelism: 2
+    steps:
+      - checkout
+      - run:
+          name: Instalar dependencias
+          command: npm install
+      - run:
+          name: Ejecutar pruebas con paralelismo
+          command: |
+            circleci tests glob "test/**/*.test.js" | circleci tests run --command="xargs npx jest --runInBand" --split-by=name --verbose
+
+  construir_proyecto:
+    docker:
+      - image: cimg/node:20.11
+    steps:
+      - checkout
+      - run:
+          name: Instalar dependencias
+          command: npm install
+      - run:
+          name: Construir proyecto
+          command: npm run build
+
+  notificar_resultado:
+    docker:
+      - image: cimg/base:current
+    steps:
+      - run:
+          name: Notificacion simulada del pipeline
+          command: |
+            echo "Pipeline finalizado correctamente"
+            echo "Estado del pipeline: SUCCESS"
+            echo "Notificacion simulada enviada"
+
+workflows:
+  pipeline_principal:
+    jobs:
+      - instalar_dependencias
+      - ejecutar_pruebas_en_paralelo:
+          requires:
+            - instalar_dependencias
+      - construir_proyecto:
+          requires:
+            - ejecutar_pruebas_en_paralelo
+      - notificar_resultado:
+          requires:
+            - construir_proyecto
